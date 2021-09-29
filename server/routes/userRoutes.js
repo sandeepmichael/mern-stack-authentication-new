@@ -4,6 +4,9 @@ const User = require('../models/userModel')
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const requireLogin = require('../middleware/Auth')
+const {OAuth2Client} = require('google-auth-library')
+
+const client = new OAuth2Client("878786950565-kmum1ne551io15kq1ibvlae1to9bj11a.apps.googleusercontent.com")
 
 //register user
 router.post('/register', async (req, res) => {
@@ -68,9 +71,53 @@ router.get('/', requireLogin, async (req, res) => {
         console.log(err)
     }
 })
-//router.get("/", (req, res) => {
-//    res.send("server is up and running")
-//})
+
+
+router.post('/googlelogin', (req, res) => {
+    const {tokenId} = req.body
+
+    client.verifyIdToken({idToken:tokenId, audience:"878786950565-kmum1ne551io15kq1ibvlae1to9bj11a.apps.googleusercontent.com"}).then((response) => {
+        const {email_verified, name, email} = response.payload
+   
+         console.log(response.payload) 
+
+         if (email_verified) {
+            User.findOne({ email }).exec((err, user) => {
+                if (user) {
+                    const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+                    const { _id, email, name,  } = user;
+                    return res.json({
+                        token,
+                        user: { _id, email, name,  }
+                    });
+                } else {
+                    let password;
+                    user = new User({ name, email, password });
+                    user.save((err, data) => {
+                        if (err) {
+                            console.log('ERROR GOOGLE LOGIN ON USER SAVE', err);
+                            return res.status(400).json({
+                                error: 'User signup failed with google'
+                            });
+                        }
+                        const token = jwt.sign({ _id: data._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+                        const { _id, email, name,  } = data;
+                        return res.json({
+                            token,
+                            user: { _id, email, name,  }
+                        });
+                    });
+                }
+            });
+        } else {
+            return res.status(400).json({
+                error: 'Google login failed. Try again'
+            });
+        }
+
+    })
+
+})
 
 module.exports = router;
 

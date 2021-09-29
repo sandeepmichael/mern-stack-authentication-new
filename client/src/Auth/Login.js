@@ -2,6 +2,7 @@ import React, { useState} from 'react'
 import{Link} from 'react-router-dom'
 import axios from 'axios'
 import Error from '../Error'
+import Google from './Google'
 
 const Login = () => {
   const [email, setEmail] = useState('')
@@ -69,6 +70,7 @@ const Login = () => {
               </div>
               <p className="mt-3 text-center">Not a user ? <Link to='/register'>Back to Register</Link></p>
             </form>
+              <Google />
           </div>
         </div>
         <div className="col-sm-2" />
